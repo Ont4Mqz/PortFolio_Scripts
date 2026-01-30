@@ -7,26 +7,36 @@ using System.Collections;
 public class PlayerManager : MonoBehaviour
 {
     [Header("参照スクリプト")]
-    [SerializeField] private TimerCount timerCount;
-    [SerializeField] private DarumaManager player1Manager;
-    [SerializeField] private DarumaManager player2Manager;
-
+    [SerializeField] private TimerCount timerCount; // タイマー参照
+    [SerializeField] private DarumaManager player1Manager; // プレイヤー1管理
+    [SerializeField] private DarumaManager player2Manager; // プレイヤー2管理
+  
     [Header("UI")]
-    [SerializeField] private TextMeshProUGUI player1ReadyText;
-    [SerializeField] private TextMeshProUGUI player2ReadyText;
+    [SerializeField] private TextMeshProUGUI player1ReadyText; // プレイヤー1準備完了テキスト
+    [SerializeField] private TextMeshProUGUI player2ReadyText; // プレイヤー2準備完了テキスト
+    [SerializeField] private List<GameObject> gameUIs = new List<GameObject>(); // 準備完了まで非表示にするUIリスト
 
     [Header("アニメーター")]
-    [SerializeField] private Animator CountDownAnimation;
+    [SerializeField] private Animator CountDownAnimation; // カウントダウンアニメーション
+
+    [SerializeField] private AudioClip SECountDown;
+    [SerializeField] private AudioClip Decide;
+    [SerializeField] private AudioSource seaudioManager;
+    [SerializeField] private AudioSource countDownManager;
+
+    AudioSource audioSource;
 
     private Gamepad pad1;
     private Gamepad pad2;
-
     private bool player1Ready = false; //準備完了のBool
     private bool player2Ready = false;
-    private bool coroutineStarted = false; // ← ★一度だけコルーチンを走らせるためのフラグ
+    private bool coroutineStarted = false; //一度だけコルーチンを走らせるためのフラグ
 
     private void Start()
     {
+        seaudioManager = GameObject.Find("BGMManager").GetComponent<AudioSource>();
+        countDownManager = GameObject.Find("SEManager").GetComponent<AudioSource>();
+        timerCount.gameFlag = true; 
         var pads = Gamepad.all; //今ついてるコントローラーを取得
         if (pads.Count >= 1) pad1 = pads[0];
         if (pads.Count >= 2) pad2 = pads[1];
@@ -36,12 +46,20 @@ public class PlayerManager : MonoBehaviour
 
         if (player1ReadyText != null) player1ReadyText.text = "Push ○!"; //準備完了のテキスト
         if (player2ReadyText != null) player2ReadyText.text = "Push ○!";
+
+        foreach (GameObject ui in gameUIs)  // 準備完了まで非表示にするUI
+        {
+            if (ui != null)
+                ui.SetActive(false);
+        }
     }
 
     private void Update()
     {
+        if (!timerCount.gameFlag) return;
         if (pad1 != null && pad1.buttonEast.wasPressedThisFrame) //プレイヤー1の準備入力
         {
+            seaudioManager.PlayOneShot(Decide);
             player1Ready = !player1Ready;
             if (player1ReadyText != null)
                 player1ReadyText.text = player1Ready ? "Ready!" : "Not Ready";
@@ -49,13 +67,38 @@ public class PlayerManager : MonoBehaviour
 
         if (pad2 != null && pad2.buttonEast.wasPressedThisFrame) //プレイヤー2の準備入力
         {
+            seaudioManager.PlayOneShot(Decide);
             player2Ready = !player2Ready;
             if (player2ReadyText != null)
                 player2ReadyText.text = player2Ready ? "Ready!" : "Not Ready";
         }
 
-        if (player1Ready && player2Ready && !coroutineStarted) // 両方とも準備オッケーだったら
+        // キーボード操作対応(デバッグ用)
+        #if UNITY_EDITOR //エディタ上でのみ有効
+        var keyboard = Keyboard.current;
+        if (keyboard != null)
         {
+            if (keyboard.digit1Key.wasPressedThisFrame && !player1Ready) // ← 1キー
+            {
+                seaudioManager.PlayOneShot(Decide);
+                player1Ready = true;
+                player1ReadyText.text = "Ready!";
+                Debug.Log("Player1 Keyboard Ready!");
+            }
+
+            if (keyboard.digit2Key.wasPressedThisFrame && !player2Ready) // ← 2キー
+            {
+                seaudioManager.PlayOneShot(Decide);
+                player2Ready = true;
+                player2ReadyText.text = "Ready!";
+                Debug.Log("Player2 Keyboard Ready!");
+            }
+        }
+        #endif
+
+        if (player1Ready && player2Ready && !coroutineStarted) //両方とも準備オッケーだったら
+        {
+            timerCount.gameFlag = false;
             coroutineStarted = true; //1回だけ実行されるようにした
             StartCoroutine(AfterP1P2Ready());
         }
@@ -67,42 +110,15 @@ public class PlayerManager : MonoBehaviour
         player1ReadyText.gameObject.SetActive(false);
         player2ReadyText.gameObject.SetActive(false);
 
+        // UIを表示
+        foreach (GameObject ui in gameUIs)
+        {
+            if (ui != null)
+                ui.SetActive(true);
+        }
+
         Debug.Log("カウントダウンスタート");
         CountDownAnimation.SetTrigger("LetsCount"); //カウントダウンアニメーションのトリガー
+        countDownManager.PlayOneShot(SECountDown);
     }
 }
-
-
-// --------------------------- このスクリプトの流れ ---------------------------
-//
-// ▼ 概要
-// 2人プレイヤー用の「レディ画面（準備確認）」を管理するスクリプト。
-// 各プレイヤーのコントローラー入力を受け取り、両者が準備完了したら
-// カウントダウン演出を開始する。
-//
-// ▼ Start()
-// ・接続されているコントローラー(Gamepad.all)を取得。
-// ・pad1, pad2 に順番で登録。
-// ・それぞれの DarumaManager に該当コントローラーを紐付け。
-// ・「Push ○!」という初期メッセージを表示。
-//
-// ▼ Update()
-// ・プレイヤー1が ○ボタン（buttonEast）を押す → player1Ready をトグル。
-// 　　→ テキストを「Ready! / Not Ready」で切り替え。
-// ・プレイヤー2も同様に ○ボタンでトグル。
-// ・両方が Ready 状態になった瞬間に、
-// 　　coroutineStarted が false なら一度だけコルーチンを開始。
-// 　　→ 2回目以降は起動しないようガード。
-//
-// ▼ AfterP1P2Ready()
-// ・両者準備完了後に呼ばれるコルーチン。
-// 　1秒待機してから Ready テキストを非表示。
-// 　カウントダウンアニメーションをトリガー（"LetsCount"）。
-// 　→ 実際のゲーム開始前の演出を担う部分。
-//
-// ▼ 補足
-// ・コントローラーが1つしか無い場合は1Pのみ操作可能。
-// ・TimerCountやDarumaManagerとは連携して、実際のプレイ開始を制御予定。
-// ・coroutineStarted フラグでコルーチンの多重起動を防いでいる。
-//
-// ---------------------------------------------------------------------------

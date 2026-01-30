@@ -3,61 +3,56 @@ using TMPro;
 
 public class ScoreManager : MonoBehaviour
 {
-    [Header("UIQÆ")]
+    [Header("UIå‚ç…§")]
     [SerializeField] private TextMeshProUGUI scoreText;
+    [SerializeField] private int playerID = 1;
 
-    public static int score = 0; //ƒXƒRƒA‚ğ‚¿‰z‚·‚½‚ß‚Éstatic‰»‚µ‚Ü‚µ‚½
+    public static int Player1Score { get; private set; } = 0;
+    public static int Player2Score { get; private set; } = 0;
 
-    void Start()
+    private void Awake() // ã‚²ãƒ¼ãƒ ã‚·ãƒ¼ãƒ³ã«å…¥ã‚‹ãŸã³ã«ã‚¹ã‚³ã‚¢åˆæœŸåŒ–
+    {
+        Player1Score = 0;
+        Player2Score = 0;
+        DifficultyLevel.score1 = 0;
+        DifficultyLevel.score2 = 0;
+    }
+
+    private void Start()
     {
         UpdateScoreUI();
     }
 
-    public void AddScore(int points) //DarumaManager‚©‚çŒÄ‚Î‚ê‚é
+    public void AddScore(int points)
     {
-        score += points;
+        AddScore(playerID, points);
+    }
+
+    public void AddScore(int targetPlayerId, int points)
+    {
+        if (targetPlayerId == 1)
+          { Player1Score += points;
+            DifficultyLevel.score1 += points;
+        }
+        else if (targetPlayerId == 2)
+           { Player2Score += points;
+            DifficultyLevel.score2 += points;
+        }
+
         UpdateScoreUI();
     }
 
-    private void UpdateScoreUI() //UI‚É”½‰f‚·‚é
+    private void UpdateScoreUI()
     {
-        if (scoreText != null)
-            scoreText.text = $"Score: {score}";
+        if (scoreText == null) return;
+
+        int currentScore = playerID == 2 ? Player2Score : Player1Score;
+        scoreText.text = $"{currentScore}";
     }
 
-    public void ResetScore() //ScoreƒŠƒZƒbƒg
+    public static void ResetAll()
     {
-        score = 0;
-        UpdateScoreUI();
+        Player1Score = 0;
+        Player2Score = 0;
     }
 }
-
-
-// --------------------------- ‚±‚ÌƒXƒNƒŠƒvƒg‚Ì—¬‚ê ---------------------------
-//
-// ¥ ŠT—v
-// ƒQ[ƒ€‘S‘Ì‚ÌƒXƒRƒAŠÇ—‚ğs‚¤ƒXƒNƒŠƒvƒgB
-// ƒXƒRƒA‰ÁZAƒŠƒZƒbƒgAUIXV‚Ì3‚Â‚Ì–ğŠ„‚ğ‚ÂB
-// static•Ï”‚ğ—˜—p‚µ‚ÄƒV[ƒ“‚ğ‚Ü‚½‚¢‚Å‚àƒXƒRƒA‚ğ•Û‚Å‚«‚é‚æ‚¤‚É‚È‚Á‚Ä‚¢‚éB
-//
-// ¥ Start()
-// EƒQ[ƒ€ŠJn‚Éˆê“x‚¾‚¯ UpdateScoreUI() ‚ğŒÄ‚ñ‚ÅƒXƒRƒA•\¦‚ğ‰Šú‰»B
-//
-// ¥ AddScore(int points)
-// EDarumaManager ‚È‚Ç‚©‚çŒÄ‚Î‚ê‚éƒXƒRƒA‰ÁZƒƒ\ƒbƒhB
-// Ew’è‚³‚ê‚½ points ‚ğ static ‚È score ‚É‰ÁZ‚µAUI‚ğXVB
-//
-// ¥ UpdateScoreUI()
-// EscoreText ‚ªƒAƒ^ƒbƒ`‚³‚ê‚Ä‚¢‚ê‚ÎAŒ»İ‚ÌƒXƒRƒA‚ğ "Score: XXX" ‚ÌŒ`‚Å•\¦B
-// EUI”½‰fê—p‚Ì“à•”ƒƒ\ƒbƒhiŠO•”‚©‚ç‚Í’¼ÚŒÄ‚Î‚È‚¢jB
-//
-// ¥ ResetScore()
-// EƒXƒRƒA‚ğ0‚É–ß‚µ‚ÄAUI‚É‚à”½‰fB
-// EƒQ[ƒ€ƒŠƒXƒ^[ƒg‚âƒŠƒgƒ‰ƒC‚ÉŒÄ‚Î‚ê‚é‘z’èB
-//
-// ¥ •â‘«
-// Estatic score ‚Ì‚½‚ßAƒV[ƒ“‚ğØ‚è‘Ö‚¦‚Ä‚à’l‚ª•Û‚³‚ê‚éiè“®‚ÅƒŠƒZƒbƒg‚ª•K—vjB
-// EƒXƒRƒA‚ÌUIQÆ‚ÍƒCƒ“ƒXƒyƒNƒ^ã‚Åİ’èB
-// E’Pƒ‚Èd‘g‚İ‚¾‚ªA‘¼‚ÌƒVƒXƒeƒ€iƒRƒ“ƒ{E”{—¦‚È‚Çj‚Æ‘g‚İ‡‚í‚¹‚Ä_“î‚ÉŠg’£‰Â”\B
-//
-// ---------------------------------------------------------------------------
