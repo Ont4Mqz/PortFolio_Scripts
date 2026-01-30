@@ -39,3 +39,4 @@
 使用ソフト：VSCode
 
 Headerとコメントアウトを多用して後から見ても内容が分かりやすいようにした。
+使用アプリはUnityとVSCodeとGithub
